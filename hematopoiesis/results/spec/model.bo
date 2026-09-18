@@ -1,0 +1,14 @@
+s0 = ~obs('S0')
+s2 = fixed(~obs('S2'))
+s3 = ~obs('S3')
+s4 = fixed(~obs('S4'))
+s5 = fixed(~obs('S5'))
+s2 != s4
+s2 != s5
+s4 != s5
+~obs('S1') >= s0 >= s2
+s0 >= s3 >= s4
+s3 >= s5
+s3 / s2
+s0 >> 'fixpoints' ^ {obs('S2'), obs('S4'), obs('S5')}
+s3 >> 'fixpoints' ^ {obs('S4'), obs('S5')}

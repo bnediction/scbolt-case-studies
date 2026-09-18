@@ -15,12 +15,20 @@ import pandas as pd
 
 APL_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_PROJECT_DIR = APL_DIR / "project_gsm"
-DEFAULT_OUTPUT_DIR = APL_DIR / "data"
-LEGACY_OUTPUTS = ("potency", "mstates_bin.csv", "hvgs.txt")
+DEFAULT_OUTPUT_DIR = APL_DIR / "results"
 DEFAULT_BIN_METHOD = "consensus"
 MARKER_GENES = ["S100a8", "S100a9", "Ly6g", "Ngp", "Spi1"]
 INTEGRATED_H5AD = Path("omics/integrated.h5ad")
-BINARISATION_CSV = Path("omics/mstates_bin.csv")
+MSTATES = Path("spec/mstates.csv")
+SELECTED_GENES = Path("gene_selection/selected_genes.txt")
+SPEC_FILENAMES = (
+    "model.bo",
+    "mstates.csv",
+    "important.txt",
+    "mandatory.txt",
+    "forbidden.txt",
+)
+MANAGED_DIRS = ("bn", "omics", "spec", "gene_selection")
 CONDITION_H5ADS = {
     Path("omics/ctrl.h5ad"),
     Path("omics/treated.h5ad"),
@@ -45,12 +53,12 @@ def parse_args() -> argparse.Namespace:
         "--output-dir",
         type=Path,
         default=DEFAULT_OUTPUT_DIR,
-        help=f"notebook data directory (default: {DEFAULT_OUTPUT_DIR})",
+        help=f"notebook results directory (default: {DEFAULT_OUTPUT_DIR})",
     )
     parser.add_argument(
         "--force",
         action="store_true",
-        help="replace existing bn/ and omics/ output directories",
+        help="replace existing managed result directories",
     )
     parser.add_argument(
         "--dry-run",
@@ -64,6 +72,11 @@ def require_file(path: Path) -> Path:
     if not path.is_file():
         raise FileNotFoundError(f"required result not found: {path}")
     return path
+
+
+def count_nonempty_lines(path: Path) -> int:
+    with path.open(encoding="utf-8") as stream:
+        return sum(bool(line.strip()) for line in stream)
 
 
 def discover_macrostate_method(project_dir: Path) -> tuple[str, Path, Path]:
@@ -148,9 +161,16 @@ def build_export_plan(
             Path("omics/integrated.h5ad"): require_file(
                 project_dir / "omics" / "annot" / "integrated" / "annot.h5ad"
             ),
-            BINARISATION_CSV: require_file(
-                project_dir / "infer" / "spec" / "mstates.csv"
+            SELECTED_GENES: require_file(
+                project_dir / "infer" / "genes" / "lock" / "comps.txt"
             ),
+        }
+    )
+    spec_dir = project_dir / "infer" / "spec"
+    files.update(
+        {
+            Path("spec") / filename: require_file(spec_dir / filename)
+            for filename in SPEC_FILENAMES
         }
     )
     potency_files = {
@@ -253,9 +273,8 @@ def export(
     force: bool,
 ) -> None:
     output_dir = output_dir.resolve()
-    managed_dirs = [output_dir / "bn", output_dir / "omics"]
-    legacy_outputs = [output_dir / path for path in LEGACY_OUTPUTS]
-    existing = [path for path in (*managed_dirs, *legacy_outputs) if path.exists()]
+    managed_dirs = [output_dir / name for name in MANAGED_DIRS]
+    existing = [path for path in managed_dirs if path.exists()]
 
     if existing and not force:
         names = ", ".join(str(path) for path in existing)
@@ -296,9 +315,21 @@ def main() -> None:
     args = parse_args()
     try:
         method, bin_method, files, potency_files = build_export_plan(args.project_dir)
-        bn_count = sum(path.name == "model.bnet" for path in files)
+        models = {
+            path: source
+            for path, source in files.items()
+            if path.name == "model.bnet" and path.parts[0] == "bn"
+        }
+        selected_gene_count = count_nonempty_lines(files[SELECTED_GENES])
+        component_counts = {count_nonempty_lines(source) for source in models.values()}
+        if component_counts != {selected_gene_count}:
+            counts = ", ".join(str(count) for count in sorted(component_counts))
+            raise RuntimeError(
+                "selected-gene and Boolean-network component counts differ: "
+                f"selection={selected_gene_count}, networks={counts}"
+            )
         retained_gene_count = pd.read_csv(
-            files[BINARISATION_CSV],
+            files[MSTATES],
             index_col=0,
             nrows=0,
         ).shape[1]
@@ -309,8 +340,9 @@ def main() -> None:
         print(f"macrostate method: {method}")
         print(f"binarization method: {bin_method}")
         print(f"retained genes: {retained_gene_count}")
+        print(f"selected genes: {selected_gene_count}")
         print("potency scores: embedded in omics/integrated.h5ad")
-        print(f"Boolean networks: {bn_count}")
+        print(f"Boolean networks: {len(models)}")
         print(f"files: {len(files)}")
         print(f"estimated size (upper bound): {format_size(total_size)}")
 

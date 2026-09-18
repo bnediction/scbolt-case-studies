@@ -89,13 +89,14 @@ python scripts/build_notebook_data.py --force
 ```
 
 The script detects the macrostate method available under `project_gsm/`, copies only
-the Boolean-network models and configurations, and prepares the omics files under
-`data/`. Figures are exported to `figures/`.
+the Boolean-network models and configurations, preserves the selected-gene list and
+inference specification, and prepares the compact notebook inputs under `results/`.
+Figures are exported to `figures/`.
 
 Regenerate the GO enrichment tables:
 
 ```bash
-python scripts/goea.py data/omics/integrated.h5ad
+python scripts/goea.py results/omics/integrated.h5ad
 ```
 
 Outputs are written to `results/goea/`.
@@ -121,5 +122,7 @@ apl/
 ├── params-sra.mk      # parameters for the SRA-based entry point
 ├── spec.yml           # BoNesis specification
 ├── notebooks/         # exploratory analyses
+├── resources/         # external published models
+├── results/           # compact reproducibility artefacts
 └── figures/           # manuscript figure generation
 ```

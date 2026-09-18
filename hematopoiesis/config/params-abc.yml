@@ -1,0 +1,41 @@
+organism: mouse
+conditions: []
+project-dir: project
+count-file: project/input/nestorowa.h5ad
+old-files: [project/omics/annot/annot.h5ad]
+spec-file: config/spec.yml
+jobs: 16
+seed: 10
+
+geneinfo-version: bundled
+prior-knowledge: dorothea
+omnipath-version: 2025-08-13
+hcop-version: bundled
+dorothea-api: modern
+dorothea-compatibility: true
+dorothea-levels: [A, B, C]
+
+representation: X_se
+
+macrostate-method: stream
+macrostate-size: 25
+stream-cluster-number: 20
+stream-alpha: 0.01
+stream-mu: 0.02
+stream-lambda: 0.01
+stream-extend: true
+stream-extend-parameter: 0.8
+stream-prune: false
+
+strong-constants-scope: relaxed
+max-clauses: 5
+inference-limit: 1000
+timeout-seed: 9h
+timeout-lock: "0"
+
+clause-continuation-relaxed: true
+domain-continuation-relaxed: true
+clause-continuation-seed: true
+domain-continuation-seed: true
+clause-continuation-lock: true
+domain-continuation-lock: true

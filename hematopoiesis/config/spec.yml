@@ -1,0 +1,55 @@
+constraints:
+# configurations
+  - s0 = ~obs('S0')
+  - s2 = fixed(~obs('S2'))
+  - s3 = ~obs('S3')
+  - s4 = fixed(~obs('S4'))
+  - s5 = fixed(~obs('S5'))
+# inequalities
+  - s2 != s4
+  - s2 != s5
+  - s4 != s5
+# positive reachability
+  - ~obs('S1') >= s0 >= s2
+  - s0 >= s3 >= s4
+  - s3 >= s5
+# negative reachability
+  - s3 / s2
+# universal constraints
+  - s0 >> 'fixpoints' ^ {obs('S2'), obs('S4'), obs('S5')}
+  - s3 >> 'fixpoints' ^ {obs('S4'), obs('S5')}
+important-nodes:
+# HSC
+  - Tal1
+  - Notch1
+  - Meis1
+  - Pbx1
+  - Hhex
+  - Cd34
+  - Tgfbr2
+  - Etv6
+# MEP
+  - Gata1
+  - Gata2
+  - Cdk6
+  - Fli1
+  - Gfi1b
+  - Epor
+  - Nfe2l2
+  - Vwf
+  - Tfrc
+  - Hemgn
+  - Stat3
+# GMP
+  - Elane
+  - Gfi1
+  - Irf8
+  - Spi1
+  - Ctsg
+# LMPP
+  - Gata3
+  - Csf3r
+  - Ets1
+  - Mef2c
+mandatory-nodes: []
+forbidden-nodes: []

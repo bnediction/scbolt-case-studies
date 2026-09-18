@@ -1,0 +1,29 @@
+ctrl_prom1 = ~obs('ctrl_Prom1')
+ctrl_prom2 = ~obs('ctrl_Prom2')
+ctrl_rep = fixed(~obs('ctrl_Rep'))
+ctrl_neu = fixed(~obs('ctrl_Neu'))
+ctrl_alt = fixed(~obs('ctrl_Alt'))
+treated_prom1 = ~obs('treated_Prom1')
+treated_prom2 = ~obs('treated_Prom2')
+treated_rep = fixed(~obs('treated_Rep'))
+treated_neu = fixed(~obs('treated_Neu'))
+ctrl_prom1 != treated_prom1
+ctrl_neu != obs('ctrl_Rep')
+ctrl_alt != obs('ctrl_Rep')
+treated_neu != obs('treated_Rep')
+ctrl_prom1 >= ctrl_rep
+ctrl_prom1 >= ctrl_prom2 >= ctrl_neu
+ctrl_prom2 >= ctrl_alt
+treated_prom1 >= treated_rep
+treated_prom1 >= treated_prom2 >= treated_neu
+ctrl_prom2 / ctrl_rep
+ctrl_prom2 / treated_rep
+treated_prom2 / ctrl_rep
+treated_prom2 / treated_rep
+ctrl_prom1 / treated_neu
+treated_prom1 / ctrl_neu
+treated_prom1 / ctrl_alt
+ctrl_prom1 >> 'fixpoints' ^ {obs('ctrl_Rep'), obs('ctrl_Neu'), obs('ctrl_Alt')}
+ctrl_prom2 >> 'fixpoints' ^ {obs('ctrl_Neu'), obs('ctrl_Alt')}
+treated_prom1 >> 'fixpoints' ^ {obs('treated_Rep'), obs('treated_Neu')}
+treated_prom2 >> 'fixpoints' ^ {obs('treated_Neu')}
