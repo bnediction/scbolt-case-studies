@@ -24,8 +24,11 @@ The tracked `.scbolt` locator already selects this configuration. Generate the
 preprocessed Nestorowa dataset:
 
 ```bash
-conda run -n scbolt-stream python scripts/load_nestorowa.py
+conda run -n scbolt-core python scripts/load_nestorowa.py
 ```
+
+The loader retrieves the mouse gene-symbol table from the Ensembl 116 BioMart
+archive and caches it under `project/omics/annot/`.
 
 Check and run the complete scBOLT workflow:
 

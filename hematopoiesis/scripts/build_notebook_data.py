@@ -7,6 +7,9 @@ import argparse
 import os
 import shutil
 import tempfile
+import warnings
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -200,7 +203,21 @@ def export_stream_object(source: Path, destination: Path) -> None:
         import anndata as ad
         import numpy as np
         import pandas as pd
-        import stream as st
+        from tqdm import TqdmWarning
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"IProgress not found.*",
+                category=TqdmWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message=r"pandas\.core\.index is deprecated.*",
+                category=FutureWarning,
+                module=r"rpy2\.robjects\.pandas2ri",
+            )
+            import stream as st
     except (ImportError, RuntimeError) as error:
         raise RuntimeError(
             "the STREAM export requires the scbolt-cs-stream environment; run "
@@ -208,7 +225,8 @@ def export_stream_object(source: Path, destination: Path) -> None:
             f"scripts/build_notebook_data.py ...` ({error})"
         ) from error
 
-    adata = st.read(file_name=str(source))
+    with redirect_stdout(StringIO()):
+        adata = st.read(file_name=str(source))
     missing_obs = [column for column in STREAM_OBS_COLUMNS if column not in adata.obs]
     missing_uns = [key for key in STREAM_UNS_KEYS if key not in adata.uns]
     if "X_se" not in adata.obsm:
@@ -230,7 +248,6 @@ def export_stream_object(source: Path, destination: Path) -> None:
     exported.obsm["X_se"] = adata.obsm["X_se"].copy()
     for key in STREAM_UNS_KEYS:
         exported.uns[key] = adata.uns[key]
-    exported.uns["workdir"] = "."
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_name(f".{destination.name}.tmp.pkl")

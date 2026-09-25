@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
@@ -63,7 +64,12 @@ _CLUSTER_LABEL_FALLBACKS = {
     "darkturquoise": ["CMP", "MPP", "LMPP"],
 }
 
-_BIOMART_URL = "https://www.ensembl.org/biomart/martservice"
+_BIOMART_URL = "https://jun2026.archive.ensembl.org/biomart/martservice"
+_BIOMART_ENDPOINTS = (
+    _BIOMART_URL,
+    "https://useast.ensembl.org/biomart/martservice",
+    "https://asia.ensembl.org/biomart/martservice",
+)
 _BIOMART_QUERY = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Query>
@@ -726,26 +732,7 @@ def _load_biomart_symbols(cache_file: Path) -> pd.Series:
             keep_default_na=False,
         )
     else:
-        query = urllib.parse.urlencode({"query": _BIOMART_QUERY})
-        request = urllib.request.Request(
-            f"{_BIOMART_URL}?{query}",
-            headers={"User-Agent": "scBOLT-case-study/1.0"},
-        )
-        with urllib.request.urlopen(request, timeout=180) as response:
-            encoding = response.headers.get_content_charset() or "utf-8"
-            response_text = response.read().decode(encoding)
-        if response_text.lstrip().startswith("Query ERROR"):
-            raise RuntimeError(f"BioMart query failed: {response_text[:500]}")
-
-        table = pd.read_csv(
-            StringIO(response_text),
-            sep="\t",
-            header=None,
-            names=["ensembl", "symbol"],
-            dtype=str,
-            keep_default_na=False,
-        )
-        table = _clean_biomart_table(table)
+        table = _download_biomart_symbols()
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         table.to_csv(
             cache_file,
@@ -756,6 +743,56 @@ def _load_biomart_symbols(cache_file: Path) -> pd.Series:
 
     table = _clean_biomart_table(table)
     return table.set_index("ensembl")["symbol"]
+
+
+def _download_biomart_symbols() -> pd.DataFrame:
+    query = urllib.parse.urlencode({"query": _BIOMART_QUERY})
+    errors: list[str] = []
+    opener = urllib.request.build_opener(_PermanentRedirectHandler())
+
+    for endpoint in _BIOMART_ENDPOINTS:
+        request = urllib.request.Request(
+            f"{endpoint}?{query}",
+            headers={"User-Agent": "scBOLT-case-study/1.0"},
+        )
+        try:
+            with opener.open(request, timeout=30) as response:
+                encoding = response.headers.get_content_charset() or "utf-8"
+                response_text = response.read().decode(encoding)
+        except (OSError, urllib.error.URLError) as error:
+            errors.append(f"{endpoint}: {error}")
+            continue
+
+        if response_text.lstrip().startswith("Query ERROR"):
+            errors.append(f"{endpoint}: {response_text[:500]}")
+            continue
+
+        try:
+            table = pd.read_csv(
+                StringIO(response_text),
+                sep="\t",
+                header=None,
+                names=["ensembl", "symbol"],
+                dtype=str,
+                keep_default_na=False,
+            )
+            table = _clean_biomart_table(table)
+        except (pd.errors.ParserError, ValueError) as error:
+            errors.append(f"{endpoint}: invalid response ({error})")
+            continue
+
+        if len(table) < 10_000 or not table["ensembl"].str.startswith("ENSMUSG").all():
+            errors.append(f"{endpoint}: incomplete mouse gene-symbol table")
+            continue
+        return table
+
+    details = "\n".join(f"- {error}" for error in errors)
+    raise RuntimeError(f"BioMart download failed:\n{details}")
+
+
+class _PermanentRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def http_error_308(self, request, response, code, message, headers):
+        return self.http_error_307(request, response, 307, message, headers)
 
 
 def _clean_biomart_table(table: pd.DataFrame) -> pd.DataFrame:
