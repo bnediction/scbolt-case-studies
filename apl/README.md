@@ -15,12 +15,12 @@ conda activate scbolt-cs
 
 | Parameter file  | Input source       | Output directory |
 | --------------- | ------------------ | ---------------- |
-| `params-gsm.mk` | GEO count matrices | `project_gsm/`   |
-| `params-sra.mk` | SRA raw reads      | `project_sra/`   |
+| `params-gsm.yml` | GEO count matrices | `project_gsm/`   |
+| `params-sra.yml` | SRA raw reads      | `project_sra/`   |
 
-`params-gsm.mk` is the recommended entry point for reproducing the manuscript results.
+`params-gsm.yml` is the recommended entry point for reproducing the manuscript results.
 
-`params-sra.mk` demonstrates the use of the full scBOLT framework starting from raw sequencing reads.
+`params-sra.yml` demonstrates the use of the full scBOLT framework starting from raw sequencing reads.
 
 > **Note (SRA entry point only)**
 > Unlike the GSM-based reproduction path, this entry point depends on genome annotations and RepeatMasker tracks retrieved from upstream providers. As these resources are not distributed through archived releases, some intermediate results may vary over time.
@@ -32,7 +32,7 @@ conda activate scbolt-cs
 Initialize the project:
 
 ```bash
-scbolt init params-gsm.mk
+scbolt init params-gsm.yml
 ```
 
 Before running the inference, you may inspect the project configuration and dependencies with:
@@ -52,7 +52,7 @@ scbolt bn-submin
 Run the project:
 
 ```bash
-scbolt init params-sra.mk
+scbolt init params-sra.yml
 scbolt bn-submin
 ```
 
@@ -61,7 +61,7 @@ scbolt bn-submin
 Potency scores reported in the manuscript can be reproduced from the GSM-based reproduction path with:
 
 ```bash
-scbolt init params-gsm.mk
+scbolt init params-gsm.yml
 scbolt potency
 ```
 
@@ -118,8 +118,8 @@ python -m ipykernel install --user --name scbolt-cs --display-name "Python (scbo
 
 ```text
 apl/
-├── params-gsm.mk      # parameters for the GEO-based entry point
-├── params-sra.mk      # parameters for the SRA-based entry point
+├── params-gsm.yml      # parameters for the GEO-based entry point
+├── params-sra.yml      # parameters for the SRA-based entry point
 ├── spec.yml           # BoNesis specification
 ├── notebooks/         # exploratory analyses
 ├── resources/         # external published models
