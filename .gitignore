@@ -241,6 +241,12 @@ hematopoiesis/results/*
 !hematopoiesis/results/gene_selection/
 !hematopoiesis/results/gene_selection/**
 
+!hematopoiesis/results/historical_inference_algorithm/
+hematopoiesis/results/historical_inference_algorithm/*
+!hematopoiesis/results/historical_inference_algorithm/20260921_091849/
+hematopoiesis/results/historical_inference_algorithm/20260921_091849/*
+!hematopoiesis/results/historical_inference_algorithm/20260921_091849/run.log
+
 !hematopoiesis/resources/
 hematopoiesis/resources/*
 !hematopoiesis/resources/models/

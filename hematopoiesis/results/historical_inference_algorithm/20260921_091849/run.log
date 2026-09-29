@@ -1,0 +1,18 @@
+started_at=2026-09-21T09:18:49+02:00
+config=config/params-abc.yml
+output=results/historical_inference_algorithm/20260921_091849
+domain=full dorothea; dorothea_api=modern; dorothea_levels=A B C
+objective=maximize_nodes then maximize_strong_constants
+command= conda run --no-capture-output -n scbolt-bonesis python -u scripts/historical_inference_algorithm.py results/spec/model.bo results/spec/mstates.csv --asp results/historical_inference_algorithm/20260921_091849/objective.txt --solution results/historical_inference_algorithm/20260921_091849/best/retained_nodes.txt --output results/historical_inference_algorithm/20260921_091849 --mandatory-nodes results/spec/mandatory.txt --forbidden-nodes results/spec/forbidden.txt --domain dorothea --organism mouse --geneinfo-version bundled --omnipath-version 2025-08-13 --hcop-version bundled --dorothea-api modern --dorothea-compatibility true --dorothea-levels A B C --bonesis-mode hard --max-clauses 5 --canonical true --clingo-mode opt --clingo-opt-strategy usc --jobs 1 --timeout 48h
+2026-09-21 09:18:54.842 - TASK - loading partially binarized metastates (file=results/spec/mstates.csv)
+2026-09-21 09:18:54.874 - TASK - initializing BoNesis inference (engine=BoNesis)
+2026-09-21 09:18:54.874 - INFO - loading DoRothEA prior network (organism=mouse, levels=A,B,C, version=2025-08-13, hcop=bundled, flavor=modern, compatibility=true)
+2026-09-21 09:19:11.761 - TASK - running historical joint gene selection
+2026-09-21 09:19:11.773 - INFO - input graph: data nodes=2396, domain nodes=9170, domain edges=32473
+2026-09-21 09:19:11.773 - OPTIONS - clingo solver: config=auto, mode=opt, strategy=usc, threads=1
+2026-09-21 09:19:11.773 - OPTIONS - encoding: max clauses=5, canonical=true
+2026-09-21 09:19:11.773 - OPTIONS - objective: maximize satisfiable nodes, then maximize strong constants
+2026-09-21 09:19:11.773 - OPTIONS - domain source: complete configured prior network (no selected-gene seed)
+2026-09-21 09:19:11.773 - WARNING - this may take some time.
+FINAL status=timeout timestamp=2026-09-23T09:19:13+02:00 elapsed_seconds=172801.456152 incumbents=0 best_retained_nodes=none
+2026-09-23 09:19:13.235 - WARNING - historical inference reached its time limit (2d)

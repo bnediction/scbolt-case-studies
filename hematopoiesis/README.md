@@ -56,8 +56,14 @@ Once `results/` has been generated, run the original joint
 max-nodes/max-strong-constants algorithm directly from the exported specification:
 
 ```bash
-CONFIG=config/params-abc.yml TIMEOUT=48h scripts/run_historical_inference_algorithm.sh
+JOBS=1 CONFIG=config/params-abc.yml TIMEOUT=48h scripts/run_historical_inference_algorithm.sh
 ```
+
+The wrapper intentionally defaults to one internal Clingo thread and does not
+inherit `jobs: 16` from the staged-workflow configuration. The `JOBS` environment
+variable can still override this default; the reported run explicitly used
+`JOBS=1`. Its execution log is archived at
+`results/historical_inference_algorithm/20260921_091849/run.log`.
 
 Each incumbent and its wall-clock time are recorded under
 `results/historical_inference_algorithm/latest/`. The wrapper expects the scBOLT
@@ -76,5 +82,9 @@ conda run -n scbolt-cs jupyter lab notebooks/bn.ipynb
 
 Figures are written to `figures/`.
 
-The published Chevalier Boolean model used for comparison is stored under
-`resources/models/`.
+The Chevalier comparison uses the published 39-component model stored in
+`resources/models/chevalier.bnet`. The original workflow obtained this final
+model as the complement of 71 components marked as strong constants in the
+retained solution over a 110-component intermediate domain. The DoRothEA prior
+induced by these 39 components contains the 137 interactions reported in the
+[publication](https://doi.org/10.1038/s41540-025-00569-z).

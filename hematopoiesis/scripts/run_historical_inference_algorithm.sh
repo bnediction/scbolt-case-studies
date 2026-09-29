@@ -34,7 +34,8 @@ while IFS=$'\t' read -r key value; do
   esac
 done <<< "${config_dump}"
 
-JOBS="${JOBS:-${config_values[JOBS]:-1}}"
+# Monolithic satisfiable-node optimisation is intentionally single-threaded by default.
+JOBS="${JOBS:-1}"
 MAX_CLAUSES="${MAX_CLAUSES:-${config_values[MAX_CLAUSES]:-8}}"
 PRIOR_KNOWLEDGE="${PRIOR_KNOWLEDGE:-${config_values[PRIOR_KNOWLEDGE]:-dorothea}}"
 ORGANISM="${ORGANISM:-${config_values[ORGANISM]:-mouse}}"
