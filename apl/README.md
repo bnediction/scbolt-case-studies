@@ -93,13 +93,15 @@ the Boolean-network models and configurations, preserves the selected-gene list 
 inference specification, and prepares the compact notebook inputs under `results/`.
 Figures are exported to `figures/`.
 
-Regenerate the GO enrichment tables:
+After running `dea`, `goea`, and `scoring`, export the integrated annotation results:
 
 ```bash
-python scripts/goea.py results/omics/integrated.h5ad
+python scripts/export_annotation_results.py --force
 ```
 
-Outputs are written to `results/goea/`.
+The script copies only the integrated DEA marker table, GOEA workbook, and
+adjusted signature-scoring matrix to `results/annotation/`, replacing numerical
+cluster identifiers with the final biological annotations.
 
 Launch one of the notebooks:
 

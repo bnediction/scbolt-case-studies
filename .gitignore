@@ -231,6 +231,8 @@ apl/results/*
 !apl/results/spec/**
 !apl/results/gene_selection/
 !apl/results/gene_selection/**
+!apl/results/annotation/
+!apl/results/annotation/**
 
 !hematopoiesis/results/
 hematopoiesis/results/*
