@@ -50,24 +50,45 @@ conda run -n scbolt-cs-stream python scripts/build_notebook_data.py --force
 This creates `results/` with the inferred networks, compact omics objects,
 selected-gene list, and inference specification.
 
-### Historical inference algorithm
+### Monolithic inference algorithm
 
-Once `results/` has been generated, run the original joint
-max-nodes/max-strong-constants algorithm directly from the exported specification:
+Once `results/` has been generated, the original joint
+max-nodes/max-strong-constants algorithm can be run from the exported
+specification. Three JSON profiles describe the experiments. The first captures
+the reported `usc` run; the two others test the model-guided `bb,lin`
+optimisation strategy with different levels of Clingo internal parallelism. All
+profiles use the same inputs, five-clause bound, and 48-hour time limit:
 
 ```bash
-JOBS=1 CONFIG=config/params-abc.yml TIMEOUT=48h scripts/run_historical_inference_algorithm.sh
+./scripts/run_monolithic_algorithm.py config/benchmarks/mono_usc.json
+./scripts/run_monolithic_algorithm.py config/benchmarks/mono_bb_lin.json
+./scripts/run_monolithic_algorithm.py config/benchmarks/multi_bb_lin.json
 ```
 
-The wrapper intentionally defaults to one internal Clingo thread and does not
-inherit `jobs: 16` from the staged-workflow configuration. The `JOBS` environment
-variable can still override this default; the reported run explicitly used
-`JOBS=1`. Its execution log is archived at
-`results/historical_inference_algorithm/20260921_091849/run.log`.
+`mono_usc.json` and `mono_bb_lin.json` use one Clingo thread;
+`multi_bb_lin.json` uses 16 competing Clingo threads
+(`--parallel-mode=16,compete`). Each JSON file records the benchmark-specific
+parameters and is copied into its result directory. Runs are stored separately
+under `results/monolithic_algorithm/<experiment>_<timestamp>/`; none is launched
+automatically. For a controlled comparison, run the profiles sequentially on
+the same compute node and with the same memory limit. The original `mono_usc`
+server log, with its shell prompt removed and its output path made
+repository-relative, is archived at
+`results/monolithic_algorithm/mono_usc_20260921_091849.log`.
+This archived transcript predates the consolidated JSON launcher; the
+`mono_usc.json` profile records the equivalent current configuration.
 
-Each incumbent and its wall-clock time are recorded under
-`results/historical_inference_algorithm/latest/`. The wrapper expects the scBOLT
-source checkout at `../../scbolt`; set `SCBOLT_HOME` when it is stored elsewhere.
+Each run writes a uniquely named `<experiment>_<timestamp>.log` directly under
+`results/monolithic_algorithm/`, while its other artefacts are stored in the
+homonymous result directory. The log records every incumbent and its wall-clock
+time. The files `run.json` and `status.json` record the solver settings and final
+status. Full intermediate solutions are appended durably to
+`incumbents.jsonl`, including their timestamps, elapsed times, objective counts,
+and exact node sets. The current best node sets are also updated under `best/`
+whenever the objective improves. The launcher automatically uses the
+`scbolt-bonesis` Conda environment and expects the scBOLT source checkout at
+`../../scbolt`; set `BONESIS_ENV` or `SCBOLT_HOME` when either is stored
+elsewhere.
 
 Launch the analyses:
 

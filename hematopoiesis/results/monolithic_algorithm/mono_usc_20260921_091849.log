@@ -1,6 +1,8 @@
+launcher=JOBS=1 ./scripts/run_historical_inference_algorithm.sh
 started_at=2026-09-21T09:18:49+02:00
 config=config/params-abc.yml
 output=results/historical_inference_algorithm/20260921_091849
+log=results/monolithic_algorithm/mono_usc_20260921_091849.log
 domain=full dorothea; dorothea_api=modern; dorothea_levels=A B C
 objective=maximize_nodes then maximize_strong_constants
 command= conda run --no-capture-output -n scbolt-bonesis python -u scripts/historical_inference_algorithm.py results/spec/model.bo results/spec/mstates.csv --asp results/historical_inference_algorithm/20260921_091849/objective.txt --solution results/historical_inference_algorithm/20260921_091849/best/retained_nodes.txt --output results/historical_inference_algorithm/20260921_091849 --mandatory-nodes results/spec/mandatory.txt --forbidden-nodes results/spec/forbidden.txt --domain dorothea --organism mouse --geneinfo-version bundled --omnipath-version 2025-08-13 --hcop-version bundled --dorothea-api modern --dorothea-compatibility true --dorothea-levels A B C --bonesis-mode hard --max-clauses 5 --canonical true --clingo-mode opt --clingo-opt-strategy usc --jobs 1 --timeout 48h
