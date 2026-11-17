@@ -13,7 +13,7 @@ import shutil
 import sys
 import time
 import traceback
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from pathlib import Path
@@ -299,6 +299,17 @@ def append_json(data: dict[str, Any], file: Path) -> None:
 class MonolithicSelectionView(bonesis.NonStrongConstantNodesView):
     """Expose the node sets and solver metadata of each incumbent."""
 
+    def __init__(
+        self,
+        *args,
+        on_grounding_start: Callable[[], None],
+        on_grounding_complete: Callable[[], None],
+        **kwargs,
+    ) -> None:
+        self._on_grounding_start = on_grounding_start
+        self._on_grounding_complete = on_grounding_complete
+        super().__init__(*args, **kwargs)
+
     def format_model(self, model) -> dict[str, Any]:
         shown_atoms = model.symbols(shown=True)
         nodes = {
@@ -320,6 +331,15 @@ class MonolithicSelectionView(bonesis.NonStrongConstantNodesView):
             "optimality_proven": bool(model.optimality_proven),
         }
 
+    def configure(self, ground: bool = True, **options) -> Any:
+        if not ground:
+            return super().configure(ground=False, **options)
+
+        self._on_grounding_start()
+        result = super().configure(ground=True, **options)
+        self._on_grounding_complete()
+        return result
+
 
 class MonolithicRecorder:
     """Log every distinct Clingo incumbent and retain the best one."""
@@ -333,6 +353,13 @@ class MonolithicRecorder:
         self.started_at_timestamp: str | None = None
         self.finished_at_timestamp: str | None = None
         self.finished_elapsed: float | None = None
+        self.phase = "pending"
+        self.grounding_started_at: str | None = None
+        self.grounding_finished_at: str | None = None
+        self.grounding_started_elapsed: float | None = None
+        self.grounding_finished_elapsed: float | None = None
+        self.solving_started_at: str | None = None
+        self.solving_started_elapsed: float | None = None
         self.models = 0
         self.best_model: dict[str, Any] | None = None
         self.best_iteration: int | None = None
@@ -364,6 +391,7 @@ class MonolithicRecorder:
         self.best.mkdir()
         self.started_at = time.monotonic()
         self.started_at_timestamp = self._timestamp()
+        self.phase = "initializing"
         write_json(
             {
                 **run_metadata,
@@ -372,6 +400,58 @@ class MonolithicRecorder:
             self.output / "run.json",
         )
         write_json(self.metadata("running"), self.output / "status.json")
+
+    def start_grounding(self) -> None:
+        """Persist the transition into ASP grounding."""
+
+        if self.started_at is None:
+            raise RuntimeError("monolithic recorder has not been started")
+        if self.grounding_started_at is not None:
+            raise RuntimeError("monolithic grounding has already started")
+
+        elapsed = self.elapsed()
+        timestamp = self._timestamp()
+        self.phase = "grounding"
+        self.grounding_started_at = timestamp
+        self.grounding_started_elapsed = elapsed
+        write_json(self.metadata("running"), self.output / "status.json")
+        print(
+            "PHASE phase=grounding "
+            f"state=started timestamp={timestamp} "
+            f"elapsed_seconds={elapsed:.6f}",
+            flush=True,
+        )
+
+    def finish_grounding(self) -> None:
+        """Persist the transition from grounding into solving."""
+
+        if self.grounding_started_elapsed is None:
+            raise RuntimeError("monolithic grounding has not started")
+        if self.grounding_finished_at is not None:
+            raise RuntimeError("monolithic grounding has already finished")
+
+        elapsed = self.elapsed()
+        timestamp = self._timestamp()
+        grounding_seconds = elapsed - self.grounding_started_elapsed
+        self.grounding_finished_at = timestamp
+        self.grounding_finished_elapsed = elapsed
+        self.solving_started_at = timestamp
+        self.solving_started_elapsed = elapsed
+        self.phase = "solving"
+        write_json(self.metadata("running"), self.output / "status.json")
+        print(
+            "PHASE phase=grounding "
+            f"state=finished timestamp={timestamp} "
+            f"elapsed_seconds={elapsed:.6f} "
+            f"duration_seconds={grounding_seconds:.6f}",
+            flush=True,
+        )
+        print(
+            "PHASE phase=solving "
+            f"state=started timestamp={timestamp} "
+            f"elapsed_seconds={elapsed:.6f}",
+            flush=True,
+        )
 
     def record(self, model: dict[str, Any]) -> None:
         """Print one line for a distinct Clingo incumbent."""
@@ -468,11 +548,17 @@ class MonolithicRecorder:
         metadata: dict[str, Any] = {
             "strategy": "monolithic_max_nodes_then_max_strong_constants",
             "status": status,
+            "phase": self.phase,
             "has_incumbent": has_incumbent,
             "incumbents": self.models,
             "started_at": self.started_at_timestamp,
             "finished_at": self.finished_at_timestamp,
             "elapsed_seconds": round(self.elapsed(), 6),
+            "grounding_started_at": self.grounding_started_at,
+            "grounding_finished_at": self.grounding_finished_at,
+            "grounding_seconds": self._grounding_seconds(),
+            "solving_started_at": self.solving_started_at,
+            "solving_seconds": self._solving_seconds(),
             "first_incumbent_seconds": self.first_incumbent_seconds,
             "best_incumbent_seconds": self.best_incumbent_seconds,
             "best_iteration": self.best_iteration,
@@ -513,6 +599,21 @@ class MonolithicRecorder:
         write_lines(retained_nodes, retained_file)
         if self.solution != retained_file:
             write_lines(retained_nodes, self.solution)
+
+    def _grounding_seconds(self) -> float | None:
+        if self.grounding_started_elapsed is None:
+            return None
+        finished = self.grounding_finished_elapsed
+        if finished is None:
+            finished = self.finished_elapsed
+        if finished is None:
+            return None
+        return round(finished - self.grounding_started_elapsed, 6)
+
+    def _solving_seconds(self) -> float | None:
+        if self.solving_started_elapsed is None or self.finished_elapsed is None:
+            return None
+        return round(self.finished_elapsed - self.solving_started_elapsed, 6)
 
     @staticmethod
     def _objective(model: dict[str, Any]) -> tuple[int, int]:
@@ -781,6 +882,8 @@ def run_solver(args: argparse.Namespace) -> int:
         bo,
         mode=args.clingo_mode,
         intermediate_model_cb=recorder.record,
+        on_grounding_start=recorder.start_grounding,
+        on_grounding_complete=recorder.finish_grounding,
         **settings,
     )
     deadline = SolverDeadline(args.timeout)
@@ -827,11 +930,15 @@ def print_final_status(metadata: dict[str, Any]) -> None:
     """Print a single parseable final status line to the run log."""
 
     retained = metadata["best_retained_nodes"]
+    grounding = metadata["grounding_seconds"]
+    solving = metadata["solving_seconds"]
     print(
         "FINAL "
         f"status={metadata['status']} "
         f"timestamp={metadata['finished_at']} "
         f"elapsed_seconds={metadata['elapsed_seconds']:.6f} "
+        f"grounding_seconds={grounding if grounding is not None else 'none'} "
+        f"solving_seconds={solving if solving is not None else 'none'} "
         f"incumbents={metadata['incumbents']} "
         f"best_retained_nodes={retained if retained is not None else 'none'}",
         flush=True,

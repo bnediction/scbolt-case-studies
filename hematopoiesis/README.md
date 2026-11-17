@@ -80,15 +80,16 @@ This archived transcript predates the consolidated JSON launcher; the
 
 Each run writes a uniquely named `<experiment>_<timestamp>.log` directly under
 `results/monolithic_algorithm/`, while its other artefacts are stored in the
-homonymous result directory. The log records every incumbent and its wall-clock
-time. The files `run.json` and `status.json` record the solver settings and final
-status. Full intermediate solutions are appended durably to
-`incumbents.jsonl`, including their timestamps, elapsed times, objective counts,
-and exact node sets. The current best node sets are also updated under `best/`
-whenever the objective improves. The launcher automatically uses the
-`scbolt-bonesis` Conda environment and expects the scBOLT source checkout at
-`../../scbolt`; set `BONESIS_ENV` or `SCBOLT_HOME` when either is stored
-elsewhere.
+homonymous result directory. The log records the start and end of ASP grounding,
+the transition into solving, and every incumbent with its wall-clock time. The
+files `run.json` and `status.json` record the solver settings, current execution
+phase, grounding duration, and final status. Full intermediate solutions are
+appended durably to `incumbents.jsonl`, including their timestamps, elapsed
+times, objective counts, and exact node sets. The current best node sets are
+also updated under `best/` whenever the objective improves. The launcher
+automatically uses the `scbolt-bonesis` Conda environment and expects the
+scBOLT source checkout at `../../scbolt`; set `BONESIS_ENV` or `SCBOLT_HOME`
+when either is stored elsewhere.
 
 Launch the analyses:
 
